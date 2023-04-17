@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Mar 26 12:03:58 2023
 
-@author: vboxuser
+@author: David Hurtgen
 
 Program to create a Kafka client and topic for traffic simulation
 """
@@ -17,3 +15,5 @@ topic_list = []
 topic = NewTopic(name="traffic-simulator", num_partitions=10, replication_factor=1)
 topic_list.append(topic)
 admin_client.create_topics(new_topics=topic_list)
+
+# End of program

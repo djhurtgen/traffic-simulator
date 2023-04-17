@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Mar 26 12:03:58 2023
 
-@author: vboxuser
+@author: David Hurtgen
 
 Kafka producer for streaming traffic simulation messages
 """
@@ -11,7 +9,7 @@ Kafka producer for streaming traffic simulation messages
 import pandas as pd
 from random import normalvariate
 import json
-from time import sleep
+from time import sleep, time, ctime
 from kafka import KafkaProducer
 
 # import the .csv file
@@ -37,9 +35,14 @@ producer = KafkaProducer(value_serializer = lambda v: json.dumps(v).encode('utf-
 for _ in range(40):        
     # wait 30 seconds before each generation cycle     
     sleep(30)
+    # record the current time for timestamp
+    # the timestamp will be used as the sort key
+    # for DynamoDB... useful for analyzing
+    # metrics in aggregate by time/day of week/etc.
+    now = ctime(time())
         
     # send a message with first road segment metrics (never changes)
-    producer.send("traffic-simulator", value={'key': 0, 'speed': int(manhattan.iat[0, 3]), 'num_cars': int(manhattan.iat[0, 4])})
+    producer.send("traffic-simulator", value={'key': 0, 'timestamp': now, 'speed': int(manhattan.iat[0, 3]), 'num_cars': int(manhattan.iat[0, 4])})
     
     # create a temporary dataframe for holding updated information...
     manhattan_temp = pd.DataFrame(columns=['speed', 'num_cars'])
@@ -71,8 +74,11 @@ for _ in range(40):
                 # update temp dataframe
                 manhattan_temp.loc[len(manhattan_temp.index)] = [speed, num_of_cars]
                 
+                # record the current time
+                now = ctime(time())
+
                 # send the message
-                producer.send("traffic-simulator", value={'key': i, 'speed': speed, 'num_cars': num_of_cars})
+                producer.send("traffic-simulator", value={'key': i, 'timestamp': now, 'speed': speed, 'num_cars': num_of_cars})
             
         else:
             speed = int(round(normalvariate(mu = manhattan.iat[i, 3], sigma = 2)))
@@ -90,13 +96,19 @@ for _ in range(40):
                 
             # update temp dataframe
             manhattan_temp.loc[len(manhattan_temp.index)] = [speed, num_of_cars]
-                
+
+            # record the current time
+            now = ctime(time())
+    
             # send the message
-            producer.send("traffic-simulator", value={'key': i, 'speed': speed, 'num_cars': num_of_cars})
+            producer.send("traffic-simulator", value={'key': i, 'timestamp': now, 'speed': speed, 'num_cars': num_of_cars})
+
+    # record the current time
+    now = ctime(time())
     
     # send a message with last road segment metrics (never changes)
     producer.send(
-        "traffic-simulator", value={'key': len(manhattan) - 1, 'speed': int(manhattan.iat[len(manhattan) - 1, 3]), \
+        "traffic-simulator", value={'key': len(manhattan) - 1, 'timestamp': now, 'speed': int(manhattan.iat[len(manhattan) - 1, 3]), \
                                     'num_cars': int(manhattan.iat[len(manhattan) - 1, 4])})
     
     # update temp dataframe
@@ -106,3 +118,5 @@ for _ in range(40):
     for i in range(len(manhattan)):
         manhattan.iat[i, 3] = manhattan_temp.iat[i, 0]
         manhattan.iat[i, 4] = manhattan_temp.iat[i, 1]
+        
+# End of program

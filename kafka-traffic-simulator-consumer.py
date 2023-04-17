@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sun Mar 26 12:03:58 2023
 
-@author: vboxuser
+@author: David Hurtgen
 
 Kafka consumer for consuming and aggregating traffic simulation messages and
 producing .csv files with aggregated results
@@ -48,7 +46,7 @@ for msg in consumer:
         avg_speeds = df['speed'].groupby(df['key']).mean()
         avg_num_cars = df['num_cars'].groupby(df['key']).mean()
         df_averages = pd.concat([avg_speeds, avg_num_cars], axis=1)
-        print(df_averages)
+        # print(df_averages)
         # populate manhattan with new avg_speed, num_cars, and congestion values and output to .csv
         for i in range(len(manhattan)):
             manhattan.iat[i, 3] = int(df_averages.iat[i, 0])
@@ -60,3 +58,5 @@ for msg in consumer:
         
         # clear out dataframe df
         df = pd.DataFrame(columns=['key', 'speed', 'num_cars'])
+
+# End of program
